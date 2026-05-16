@@ -65,10 +65,10 @@ def rotate_hue_oklch(
     coordinate). Empirically the uint8 round-trip introduces:
 
     * median |ΔL\\*| ≲ 0.002 (sub-LSB quantisation at perceptual mid-tones);
-    * **but** tail error reaches max |ΔL\\*| ≈ 0.04–0.07 in saturated
+    * **but** tail error reaches max |ΔL\\*| ≈ 0.04-0.07 in saturated
       regions where the rotated colour falls outside the sRGB gamut
-      and is clipped channel-wise before re-encoding. The clipping —
-      not the 8-bit quantisation — is the dominant L-deviation source.
+      and is clipped channel-wise before re-encoding. The clipping --
+      not the 8-bit quantisation -- is the dominant L-deviation source.
 
     For an empirical CDF see ``paper/figures/fig_L_preservation.pdf``
     in the upstream mosaicraft-active-vision repo.
