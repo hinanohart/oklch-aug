@@ -1,19 +1,28 @@
-"""Kornia / torch adapter for Oklch hue rotation.
+"""Torch adapter for Oklch hue rotation.
 
-Implementation detail: the canonical :func:`oklch_aug.rotate_hue_oklch`
-runs on numpy uint8. The torch wrapper therefore round-trips through
-CPU numpy per call. This is faster than re-deriving Oklab in
-``torch.float32`` for small batches; for large GPU pipelines, a future
-release will port the conversion into a torch-native autograd path.
+A thin :class:`torch.nn.Module` that round-trips a tensor batch
+through CPU numpy so the canonical numpy implementation of
+:func:`oklch_aug.rotate_hue_oklch` can be reused. Useful as a
+drop-in inside torch / kornia / torchvision pipelines, but **note**:
 
-The numpy-touching logic lives in :func:`_rotate_tensor` at module
-scope so the :class:`nn.Module` itself stays free of numpy calls
-(ONNX exporters and the trailofbits semgrep rule prefer it that way).
+* the operation is **non-differentiable** (we ``.detach()`` and round
+  through ``uint8``);
+* it expects a floating tensor in ``[0, 1]`` with channel-first layout
+  ``(B, 3, H, W)`` or ``(3, H, W)``;
+* anything else (integer dtypes, ``requires_grad``, values outside
+  ``[0, 1]``, alpha channels) raises or warns rather than silently
+  corrupting.
+
+This is a plain ``nn.Module``; it does **not** subclass
+``kornia.augmentation.AugmentationBase2D``. If you need true kornia
+pipeline compatibility (``AugmentationSequential``,
+``same_on_batch``, parameter generation), wrap this with your own
+kornia adapter.
 
 Example
 -------
 >>> import torch
->>> from oklch_aug.adapters.kornia import OklchHueRotation
+>>> from oklch_aug.adapters.torch import OklchHueRotation
 >>> aug = OklchHueRotation(hue_shift_deg=72.0)
 >>> x = torch.rand(4, 3, 64, 64)         # B, C, H, W in [0, 1]
 >>> y = aug(x)                            # same shape, same dtype
@@ -21,12 +30,14 @@ Example
 
 from __future__ import annotations
 
+import warnings
+
 try:
     import torch
     from torch import Tensor, nn
 except ImportError as exc:  # pragma: no cover - import-time guard
     raise ImportError(
-        "OklchHueRotation requires `torch`. Install via `pip install oklch-aug[kornia]`."
+        "OklchHueRotation requires `torch`. Install via `pip install oklch-aug[torch]`."
     ) from exc
 
 from ..rotate import rotate_hue_oklch
@@ -42,12 +53,11 @@ def _rotate_tensor(
     protect_highlights: bool,
     protect_shadows: bool,
 ) -> Tensor:
-    """Round-trip a ``(B, 3, H, W)`` float[0,1] tensor through Oklch rotation.
-
-    Module-level so the :class:`nn.Module` subclass stays numpy-free.
-    """
-    # local import keeps `import oklch_aug.adapters.kornia` light
+    """Round-trip a ``(B, 3, H, W)`` float[0,1] tensor through Oklch rotation."""
     import numpy as np
+
+    if x.shape[0] == 0:
+        return x.clone()
 
     device, dtype = x.device, x.dtype
     arr = x.detach().cpu().clamp(0.0, 1.0).mul(255.0).round().byte().permute(0, 2, 3, 1)
@@ -85,9 +95,12 @@ class OklchHueRotation(nn.Module):
 
     Expected input
     --------------
-    ``Tensor`` of shape ``(B, 3, H, W)`` or ``(3, H, W)`` in ``[0, 1]``,
-    RGB channel order. Output matches input shape and dtype. The
-    operation is **non-differentiable** (numpy round-trip).
+    Floating ``Tensor`` of shape ``(B, 3, H, W)`` or ``(3, H, W)`` with
+    values in ``[0, 1]``, RGB channel order. Output matches input shape
+    and dtype. The operation is **non-differentiable** (numpy
+    round-trip). Integer dtypes raise ``TypeError``; values outside
+    ``[0, 1]`` raise ``ValueError``; ``requires_grad=True`` emits a
+    :class:`UserWarning` (gradients will not flow through).
     """
 
     def __init__(
@@ -108,6 +121,24 @@ class OklchHueRotation(nn.Module):
             raise ValueError(f"expected (C,H,W) or (B,C,H,W); got shape {tuple(x.shape)}")
         if x.shape[-3] != 3:
             raise ValueError(f"expected 3 channels (RGB); got shape {tuple(x.shape)}")
+        if not x.is_floating_point():
+            raise TypeError(
+                f"OklchHueRotation expects a floating tensor in [0, 1]; got dtype {x.dtype}."
+                " Convert with `x.float() / 255.0` first."
+            )
+        if x.numel() > 0:
+            lo, hi = float(x.min()), float(x.max())
+            if lo < 0.0 or hi > 1.0:
+                raise ValueError(
+                    f"OklchHueRotation expects values in [0, 1]; got [{lo:.4f}, {hi:.4f}]."
+                    " Inverse-normalise before the adapter."
+                )
+        if x.requires_grad:
+            warnings.warn(
+                "OklchHueRotation is non-differentiable; gradients will not flow through.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         squeezed = x.ndim == 3
         if squeezed:

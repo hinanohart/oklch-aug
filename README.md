@@ -30,15 +30,14 @@ the gray-level structure a pretrained policy or matcher relies on.
   cv2-free.
 - `oklab_distance(a, b)` — pairwise Euclidean perceptual distance.
 - Optional `oklab_distance_torch` for differentiable use.
-- Optional adapters for AlbumentationsX and kornia.
+- Optional adapters for AlbumentationsX and torch.
 
 ## Install
 
 ```bash
 pip install oklch-aug                 # numpy only
-pip install "oklch-aug[torch]"        # + torch metric
+pip install "oklch-aug[torch]"        # + torch metric and Torch adapter
 pip install "oklch-aug[albumentations]"
-pip install "oklch-aug[kornia]"       # + torch + kornia
 ```
 
 ## Quick start
@@ -71,17 +70,23 @@ pipeline = A.Compose([
 out = pipeline(image=img)["image"]
 ```
 
-### Torch / Kornia
+### Torch
 
 ```python
 import torch
-from oklch_aug.adapters.kornia import OklchHueRotation
+from oklch_aug.adapters.torch import OklchHueRotation
 
 aug = OklchHueRotation(hue_shift_deg=72.0)
-x = torch.rand(4, 3, 64, 64)            # B, C, H, W in [0, 1] RGB
+x = torch.rand(4, 3, 64, 64)            # B, C, H, W float32 in [0, 1] RGB
 y = aug(x)                                # same shape / dtype
-# Round-trips through CPU numpy; non-differentiable.
+# Round-trips through CPU numpy; non-differentiable (warns on
+# requires_grad=True; rejects integer dtypes / out-of-range values).
 ```
+
+This is a plain `nn.Module`, not a `kornia.augmentation.AugmentationBase2D`
+subclass — use it inside torch / torchvision / kornia pipelines as a
+fixed-policy transform, but expect no autograd, no per-batch parameter
+generation, and no `same_on_batch`-style coupling.
 
 ## Provenance
 
@@ -90,7 +95,9 @@ Extracted from
 (`color_augment.py`, `color.py`) where the technique was first used
 to expand photomosaic tile pools fed to a Hungarian assignment.
 Verified absent (as of 2026-05-16) from albumentations, AlbumentationsX,
-kornia, torchvision, and DALI.
+kornia, torchvision, and DALI. The torch adapter exposes a plain
+`nn.Module`; no `kornia.augmentation.AugmentationBase2D` subclass is
+shipped (deliberately — see the Torch section above).
 
 ## License
 

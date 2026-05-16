@@ -42,10 +42,6 @@ torch = [
 albumentations = [
     "albumentations>=1.4",
 ]
-kornia = [
-    "torch>=2.1",
-    "kornia>=0.7",
-]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
