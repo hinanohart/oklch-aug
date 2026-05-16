@@ -29,13 +29,28 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.color import hsv2rgb, rgb2hsv
-from skimage.data import astronaut
+from skimage.data import coffee
 
 from oklch_aug import HueRotatePool, rotate_hue_oklch
 from oklch_aug.color import rgb_to_oklab
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 ASSETS.mkdir(parents=True, exist_ok=True)
+
+
+def _tabletop_square() -> np.ndarray:
+    """Center-crop the coffee tabletop image to a 400x400 square.
+
+    Unified with scripts/make_robotics_demo.py so the whole README uses
+    one consistent scene — the README's robotics framing is undermined
+    if the technical-property figures show a different (astronaut) image.
+    """
+    img = coffee()
+    h, w = img.shape[:2]
+    side = min(h, w)
+    y0 = (h - side) // 2
+    x0 = (w - side) // 2
+    return img[y0 : y0 + side, x0 : x0 + side]
 
 
 def _oklab_L_uint8(img_u8: np.ndarray) -> np.ndarray:
@@ -62,7 +77,7 @@ def _set_axes_off(ax) -> None:
 
 def make_hero_grid() -> None:
     """6-column hue rotation grid + L-channel row underneath."""
-    img = astronaut()
+    img = _tabletop_square()
     angles = [0, 60, 120, 180, 240, 300]
 
     fig, axes = plt.subplots(
@@ -103,7 +118,7 @@ def make_hero_grid() -> None:
 
 def make_oklch_vs_hsv() -> None:
     """Side-by-side oklch vs HSV at 120° — shows L drift on HSV side."""
-    img = astronaut()
+    img = _tabletop_square()
     deg = 120.0
     oklch = rotate_hue_oklch(img, hue_shift_deg=deg)
     hsv = _hsv_rotate(img, deg)
@@ -167,7 +182,7 @@ def make_oklch_vs_hsv() -> None:
 
 def make_pool_expansion() -> None:
     """``HueRotatePool(n_variants=4)`` — what the pool actually emits."""
-    img = astronaut()
+    img = _tabletop_square()
     pool = HueRotatePool(n_variants=4)
     variants = pool([img])
 
@@ -201,7 +216,7 @@ def make_hue_sweep_gif() -> None:
     renders it inline in the README. Frames share an identical Oklab L
     by construction (the whole point of the package).
     """
-    img = astronaut()
+    img = _tabletop_square()
     # Center-crop to a square and downsample to 256 to keep GIF size
     # under the GitHub README inline-render budget.
     h, w = img.shape[:2]
