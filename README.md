@@ -54,6 +54,64 @@ fidelity-vs-diversity tradeoff of HSV jitter.
 > All four figures above are produced by `python scripts/make_readme_demo.py`
 > (re-runnable, deterministic, takes seconds).
 
+## Use case: domain randomization for robot vision
+
+oklch-aug was extracted from
+[`mosaicraft-active-vision`](https://github.com/hinanohart/mosaicraft-active-vision),
+an active-vision research codebase. The reason a robot-vision project
+needed an L-preserving hue rotator is simple: standard color jitter
+(HSV / HSL / value-stretching) drifts the gray-level structure that
+manipulation policies, matchers, and retrieval heads have learned to
+rely on. If you want a vision-based policy to be invariant to
+**room lighting / sensor color / specular cast** without unlearning
+its geometry, you want oklch-aug, not HSV jitter.
+
+### One scene, 8 color casts
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hinanohart/oklch-aug/main/assets/robot_dr_batch.png"
+       alt="single tabletop scene rendered at 8 different hue rotations, identical luminance, demonstrating domain randomization for a vision-based manipulation policy"
+       width="100%">
+</p>
+
+A real photo treated as a stand-in for a wrist-camera tabletop view.
+For a manipulation policy / pose head / grasp head, this is exactly the
+batch shape you want: **same geometry, same shadow layout, same
+luminance** — only the chroma varies. The policy sees one trajectory
+under many color casts and learns to ignore the color channel as a
+spurious feature.
+
+### Continuous lighting sweep
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hinanohart/oklch-aug/main/assets/robot_lighting_sweep.gif"
+       alt="continuous hue sweep on a tabletop scene, every frame at identical Oklab L"
+       width="320">
+</p>
+
+What "lighting / color robustness" looks like at the data-loader level.
+Every frame is L-identical to the rest by construction.
+
+### Pool expansion for retrievers / matchers
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hinanohart/oklch-aug/main/assets/robot_matcher_pool.png"
+       alt="schematic: reference scene goes through HueRotatePool n_variants=4 producing 5 color-diverse candidates that feed a matcher or retrieval head"
+       width="100%">
+</p>
+
+This is the original motivation in `mosaicraft-active-vision`'s
+Hungarian-vs-Sinkhorn benchmark: a Hungarian / Sinkhorn / CLIP-style
+matcher gets a 5× larger candidate pool from a single reference scene,
+all at identical luminance, without the L-drift HSV jitter introduces.
+Whether that *improves* policy / matcher performance on a real robot
+remains an open empirical question (the preprint is in submission); but
+this is what the inputs look like.
+
+> Robotics figures are produced by `python scripts/make_robotics_demo.py`.
+> They use `skimage.data.coffee()` as a real-photo proxy for a wrist
+> camera — no Gym / Bullet / MuJoCo dependency.
+
 ## Why
 
 Most color augmenters live in HSV/HSL, which is **not** perceptually
