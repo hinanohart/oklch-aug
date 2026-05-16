@@ -3,6 +3,57 @@
 > Perceptually-uniform Oklch hue-rotation pool augmentation.
 > L-preserving by construction. numpy-core, torch optional.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hinanohart/oklch-aug/main/assets/hero_grid.png"
+       alt="oklch-aug hue rotation grid: 6 rotations of the same image with their Oklab L channels shown identical underneath"
+       width="100%">
+</p>
+
+**Top row** — the same photo rotated through six hues with `rotate_hue_oklch`.
+**Bottom row** — the Oklab L channel of each rotated image. By construction
+they are pixel-for-pixel identical: hue rotation in Oklab fixes L. That is
+exactly the invariant a pretrained matcher / retriever / policy needs.
+
+### See the hue sweep
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hinanohart/oklch-aug/main/assets/hue_sweep.gif"
+       alt="animated hue sweep from 0 to 360 degrees with identical Oklab L on every frame"
+       width="320">
+</p>
+
+Every frame above shares the same Oklab L — only the chroma rotates.
+
+### Why this matters: HSV drifts L, oklch does not
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hinanohart/oklch-aug/main/assets/oklch_vs_hsv.png"
+       alt="HSV 120 degree hue shift produces large luminance deviation while oklch produces near-zero deviation"
+       width="100%">
+</p>
+
+Same +120° hue shift, two color spaces. The bottom row shows |ΔL| against the
+original. HSV's median |ΔL| is in the double digits — the gray-level structure
+your matcher learned to rely on has moved. oklch's median is < 1 LSB (the residual
+is uint8 round-trip + sRGB gamut clipping, both characterised in `rotate_hue_oklch`'s
+docstring).
+
+### Pool augmentation, one call
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hinanohart/oklch-aug/main/assets/pool_expansion.png"
+       alt="HueRotatePool(n_variants=4) emits five evenly-spaced hue rotations of the same image"
+       width="100%">
+</p>
+
+`HueRotatePool(n_variants=4)` expands each pool image into 5 visibly-different
+copies at identical luminance — feeds straight into bipartite-matching /
+retrieval pools that want a larger candidate set without the
+fidelity-vs-diversity tradeoff of HSV jitter.
+
+> All four figures above are produced by `python scripts/make_readme_demo.py`
+> (re-runnable, deterministic, takes seconds).
+
 ## Why
 
 Most color augmenters live in HSV/HSL, which is **not** perceptually
