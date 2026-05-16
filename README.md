@@ -56,6 +56,33 @@ expanded = pool([rgb for _ in range(8)])
 # len(expanded) == 8 * 5 == 40
 ```
 
+## Adapters
+
+### Albumentations / AlbumentationsX
+
+```python
+import albumentations as A
+from oklch_aug.adapters.albumentations import OklchHueRotation
+
+pipeline = A.Compose([
+    OklchHueRotation(hue_shift_range=(-180, 180), chroma_scale=1.0, p=0.5),
+    A.HorizontalFlip(p=0.5),
+])
+out = pipeline(image=img)["image"]
+```
+
+### Torch / Kornia
+
+```python
+import torch
+from oklch_aug.adapters.kornia import OklchHueRotation
+
+aug = OklchHueRotation(hue_shift_deg=72.0)
+x = torch.rand(4, 3, 64, 64)            # B, C, H, W in [0, 1] RGB
+y = aug(x)                                # same shape / dtype
+# Round-trips through CPU numpy; non-differentiable.
+```
+
 ## Provenance
 
 Extracted from
