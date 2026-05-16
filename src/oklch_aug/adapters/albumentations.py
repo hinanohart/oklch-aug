@@ -122,7 +122,18 @@ class OklchHueRotation(ImageOnlyTransform):
             return {"hue_shift_deg": float(py_rand.uniform(lo, hi))}
         return {"hue_shift_deg": float(random.uniform(lo, hi))}
 
-    def apply(self, img: NDArray, *, hue_shift_deg: float = 0.0, **_: Any) -> NDArray:
+    def apply(self, img: NDArray, *, hue_shift_deg: float | None = None, **_: Any) -> NDArray:
+        # No default for `hue_shift_deg`: Albumentations / AlbumentationsX
+        # always populate it via `get_params()` when the transform is
+        # invoked through `Compose`. A direct `apply()` caller that
+        # forgets the kwarg used to silently get an identity transform
+        # (0° rotation); now it raises so the bug is caught loudly.
+        if hue_shift_deg is None:
+            raise TypeError(
+                "OklchHueRotation.apply() requires `hue_shift_deg` (in degrees)."
+                " Call the transform through `A.Compose(...)` or pass `hue_shift_deg=...`"
+                " explicitly when invoking `apply` directly."
+            )
         if not isinstance(img, np.ndarray):
             raise TypeError(f"OklchHueRotation expects a numpy array; got {type(img).__name__}")
         if img.dtype != np.uint8:

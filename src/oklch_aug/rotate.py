@@ -60,8 +60,18 @@ def rotate_hue_oklch(
 
     Notes
     -----
-    L preservation is exact in the float64 Oklab representation. The
-    final uint8 round-trip introduces sub-LSB quantisation only.
+    L is preserved *exactly* in the float64 Oklab representation
+    (mathematical invariant: rotation in the a/b plane fixes the L
+    coordinate). Empirically the uint8 round-trip introduces:
+
+    * median |ΔL\\*| ≲ 0.002 (sub-LSB quantisation at perceptual mid-tones);
+    * **but** tail error reaches max |ΔL\\*| ≈ 0.04–0.07 in saturated
+      regions where the rotated colour falls outside the sRGB gamut
+      and is clipped channel-wise before re-encoding. The clipping —
+      not the 8-bit quantisation — is the dominant L-deviation source.
+
+    For an empirical CDF see ``paper/figures/fig_L_preservation.pdf``
+    in the upstream mosaicraft-active-vision repo.
     """
     if channel_order == "rgb":
         oklab = rgb_to_oklab(image)
@@ -69,6 +79,12 @@ def rotate_hue_oklch(
         oklab = bgr_to_oklab(image)
     else:
         raise ValueError(f"channel_order must be 'rgb' or 'bgr'; got {channel_order!r}")
+
+    if float(chroma_scale) < 0.0:
+        raise ValueError(
+            f"chroma_scale must be non-negative; got {chroma_scale!r}."
+            " Negative values would flip the a/b sign and silently shift hue by 180°."
+        )
 
     lightness = oklab[..., 0]
     a = oklab[..., 1]

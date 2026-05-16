@@ -15,7 +15,7 @@ from .metric import oklab_distance
 from .pool import DEFAULT_HUE_SCHEDULE, HueRotatePool
 from .rotate import rotate_hue_oklch
 
-__version__ = "0.0.0"
+__version__ = "0.1.0a1"
 
 __all__ = [
     "DEFAULT_HUE_SCHEDULE",

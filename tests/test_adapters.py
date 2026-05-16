@@ -128,6 +128,15 @@ class TestAlbumentationsAdapter:
             for rec in w
         )
 
+    # ---- apply() now refuses the silent-identity default -----------------
+    def test_apply_without_hue_shift_raises(self) -> None:
+        """Direct `apply(img)` without hue_shift_deg used to silently
+        return an identity (default 0.0); should now fail loudly."""
+        img = _rng_uint8(np.random.default_rng(5))
+        aug = self.AlbOklch(hue_shift_range=(72.0, 72.0), p=1.0)
+        with pytest.raises(TypeError, match="hue_shift_deg"):
+            aug.apply(img)
+
 
 # ---------------------------------------------------------------------------
 # Torch
@@ -206,3 +215,38 @@ class TestTorchAdapter:
             for rec in w
         )
         assert not y.requires_grad
+
+    def test_rejects_float16(self) -> None:
+        """float16 round-trips through uint8 and amplifies quantisation
+        noise past the documented 1/255 floor; reject loudly."""
+        x = self.torch.rand(1, 3, 8, 8, dtype=self.torch.float16)
+        with pytest.raises(TypeError, match="float16"):
+            self.TorchOklch()(x)
+
+    def test_rejects_nan(self) -> None:
+        """NaN bypassed the [0,1] range check (NaN comparisons are False);
+        must be rejected explicitly."""
+        x = self.torch.rand(1, 3, 8, 8, dtype=self.torch.float32)
+        x[0, 0, 0, 0] = float("nan")
+        with pytest.raises(ValueError, match="finite"):
+            self.TorchOklch()(x)
+
+    def test_rejects_inf(self) -> None:
+        x = self.torch.rand(1, 3, 8, 8, dtype=self.torch.float32)
+        x[0, 0, 0, 0] = float("inf")
+        with pytest.raises(ValueError, match="finite"):
+            self.TorchOklch()(x)
+
+
+# ---------------------------------------------------------------------------
+# rotate_hue_oklch — chroma_scale sign gate
+# ---------------------------------------------------------------------------
+class TestRotateChromaScale:
+    def test_rejects_negative_chroma_scale(self) -> None:
+        """Negative chroma_scale silently shifts hue by 180° and looked
+        like a feature; now gated to avoid surprise."""
+        from oklch_aug import rotate_hue_oklch
+
+        img = _rng_uint8(np.random.default_rng(6))
+        with pytest.raises(ValueError, match="non-negative"):
+            rotate_hue_oklch(img, hue_shift_deg=0.0, chroma_scale=-1.0)
