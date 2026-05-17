@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Perceptually-uniform Oklch hue-rotation pool augmentation"
+authors:
+  - family-names: "Hart"
+    given-names: "Hinano"
+    alias: "hinanohart"
+type: software
+license: "NOASSERTION"
+repository-code: "https://github.com/hinanohart/oklch-aug"
+url: "https://github.com/hinanohart/oklch-aug"
+version: "0.1.0"
+date-released: "2026-05-16"
+keywords:
+  - "color-space"
+  - "computer-vision"
+  - "data-augmentation"
+  - "numpy"
+  - "oklab"
+  - "oklch"
+  - "perceptual-uniformity"
+  - "pytorch"
