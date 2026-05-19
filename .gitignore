@@ -47,3 +47,14 @@ htmlcov/
 # Misc
 .DS_Store
 *.log
+
+# Secrets / dotenv (never commit)
+.env
+.env.*
+!.env.example
+credentials.json
+secrets.yml
+secrets.yaml
+*.pem
+*.key
+*.p12
