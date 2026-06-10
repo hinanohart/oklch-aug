@@ -7,7 +7,7 @@ A Python library that rotates image hue in the Oklab color space rather than HSV
 keeping **Oklab L (lightness) mathematically fixed** at every pixel. This lets you
 generate visibly different color variants of an image without moving the gray-level
 structure that a pretrained matcher, retriever, or policy depends on. Extracted from
-[hinanohart/mosaicraft-active-vision](https://github.com/hinanohart/mosaicraft-active-vision)
+[hinanohart/mosaicraft](https://github.com/hinanohart/mosaicraft)
 where it was used to expand photomosaic tile pools fed to Hungarian/Sinkhorn assignment.
 
 <p align="center">
