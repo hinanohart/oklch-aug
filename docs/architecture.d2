@@ -1,0 +1,48 @@
+direction: down
+explanation: |md
+  ### oklch-aug
+  **Perceptually-uniform Oklch hue-rotation pool augmentation — L-preserving by construction, numpy-core.**
+| {near: top-center}
+
+input: "① uint8 RGB or BGR image" {shape: oval; style: {fill: "#6366f1"; font-color: "#ffffff"; stroke: "#4338ca"; bold: true; font-size: 18}}
+
+single: "Single-Image Pipeline" {
+  style: {fill: "#f0fdf4"; stroke: "#10b981"; font-color: "#065f46"; bold: true; font-size: 16}
+  to_oklab: "② rgb_to_oklab\nor bgr_to_oklab"
+  decompose: "② Extract L lightness\n+ chroma + hue angle"
+  rotate: "③ Rotate hue angle\nby hue_shift_deg"
+  protect: "③ Apply highlight and\nshadow chroma protection"
+  recompose: "③ Reconstruct a_new, b_new\nfrom new chroma + angle"
+  from_oklab: "③ oklab_to_rgb\nor oklab_to_bgr"
+  *.style.fill: "#dcfce7"; *.style.font-color: "#065f46"
+}
+
+output: "④ uint8 rotated image\nsame shape and dtype" {shape: cylinder; style: {fill: "#fdf2f8"; stroke: "#ec4899"; font-color: "#9d174e"; bold: true; font-size: 16}}
+
+pool: "Pool Augmentation" {
+  style: {fill: "#fffbeb"; stroke: "#f59e0b"; font-color: "#92400e"; bold: true; font-size: 16}
+  poolnode: "HueRotatePool\nn_variants=4"
+  sched: "Resolve hue schedule\n72 · 144 · 216 · 288 deg"
+  expand: "Call rotate_hue_oklch\nfor each image and angle"
+  pool_out: "N × (1 + n_variants) images\noriginals first"
+  *.style.fill: "#fef3c7"; *.style.font-color: "#92400e"
+}
+
+input -> single.to_oklab: "② convert"
+single.to_oklab -> single.decompose: "② decompose"
+single.decompose -> single.rotate: "③ rotate"
+single.rotate -> single.protect: "③ protect"
+single.protect -> single.recompose: "③ recompose"
+single.recompose -> single.from_oklab: "③ convert"
+single.from_oklab -> output: "④ emit"
+pool.poolnode -> pool.sched: "resolve"
+pool.sched -> pool.expand: "expand"
+pool.expand -> output: "per-angle"
+output -> pool.pool_out: "④ collect"
+
+legend: "Legend" {
+  near: bottom-center
+  style: {fill: "#f8fafc"; stroke: "#cbd5e1"; font-size: 13}
+  e: "● entry"; c: "● pipeline step"; b: "● pool"; d: "● output"
+  e.style.font-color: "#4338ca"; c.style.font-color: "#10b981"; b.style.font-color: "#f59e0b"; d.style.font-color: "#ec4899"
+}

@@ -25,35 +25,9 @@ exactly the invariant a pretrained matcher / retriever / policy needs.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    INPUT[uint8 RGB or BGR image]
-    TO_OKLAB[rgb_to_oklab or bgr_to_oklab]
-    DECOMPOSE[Extract L lightness + chroma + hue angle]
-    ROTATE[Rotate hue angle by hue_shift_deg]
-    PROTECT[Apply highlight and shadow chroma protection]
-    RECOMPOSE[Reconstruct a_new and b_new from new chroma + angle]
-    FROM_OKLAB[oklab_to_rgb or oklab_to_bgr]
-    OUTPUT[uint8 rotated image same shape and dtype]
-
-    INPUT --> TO_OKLAB
-    TO_OKLAB --> DECOMPOSE
-    DECOMPOSE --> ROTATE
-    ROTATE --> PROTECT
-    PROTECT --> RECOMPOSE
-    RECOMPOSE --> FROM_OKLAB
-    FROM_OKLAB --> OUTPUT
-
-    POOL[HueRotatePool n_variants=4]
-    SCHED[Resolve hue schedule 72 144 216 288 deg]
-    EXPAND[Call rotate_hue_oklch for each image and angle]
-    POOL_OUT[N times 1 plus n_variants images originals first]
-
-    POOL --> SCHED
-    SCHED --> EXPAND
-    EXPAND --> OUTPUT
-    OUTPUT --> POOL_OUT
-```
+<div align="center">
+  <img src="docs/architecture.png" alt="oklch-aug architecture" width="840">
+</div>
 
 ---
 
@@ -287,3 +261,4 @@ subclass is shipped (deliberately — see the Torch section above).
 ## License
 
 [MIT](LICENSE). Matches `mosaicraft` upstream.
+
