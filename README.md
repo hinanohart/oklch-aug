@@ -132,7 +132,7 @@ Every frame above shares the same Oklab L — only the chroma rotates.
 1. Convert uint8 sRGB → float64 Oklab via `rgb_to_oklab` (or `bgr_to_oklab`).
 2. Decompose Oklab `(L, a, b)` into lightness `L`, chroma `√(a²+b²)`, and hue
    angle `atan2(b, a)`.
-3. Add `hue_shift_deg` (in radians) to the hue angle. `L` is untouched.
+3. Add `hue_shift_deg` (converted from degrees to radians) to the hue angle. `L` is untouched.
 4. Optionally scale chroma with `chroma_scale` and fade it near highlights
    (`protect_highlights`) or shadows (`protect_shadows`) to avoid color casts
    on specular or near-black regions.
