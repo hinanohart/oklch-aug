@@ -170,8 +170,8 @@ fidelity-vs-diversity tradeoff of HSV jitter.
 ## Use case: domain randomization for robot vision
 
 oklch-aug was extracted from
-[`mosaicraft-active-vision`](https://github.com/hinanohart/mosaicraft-active-vision),
-an active-vision research codebase. The reason a robot-vision project needed an
+[`hinanohart/mosaicraft`](https://github.com/hinanohart/mosaicraft),
+a photomosaic research codebase. The reason a robot-vision project needed an
 L-preserving hue rotator is simple: standard color jitter (HSV / HSL /
 value-stretching) drifts the gray-level structure that manipulation policies,
 matchers, and retrieval heads have learned to rely on. If you want a vision-based
